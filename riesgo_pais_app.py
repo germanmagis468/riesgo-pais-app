@@ -75,7 +75,6 @@ if "live_data" not in st.session_state:
 
 # --- Actualización en vivo mediante autorefresh ---
 # Cada recarga de la página re-ejecuta el script y agrega la lectura actual.
-st_autorefresh = st.experimental_rerun  # alias para compatibilidad si cambia la API
 
 # Obtener lectura actual
 riesgo_pb, rend_arg, rend_usa, precio_arg = obtener_riesgo_actual()
