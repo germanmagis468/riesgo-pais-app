@@ -41,12 +41,11 @@ def obtener_riesgo_actual() -> Tuple[Optional[float], Optional[float], Optional[
         rendimiento_usa = float(hist_usa["Close"].iloc[-1])
 
         # Aproximación de rendimiento del bono argentino en %.
-        # NOTA: Para un cálculo exacto se requiere YTM; aquí usamos una relación inversa simple.
         rendimiento_arg = max(0.0, (100.0 / precio_arg) * 10.0)
 
         riesgo_pb = (rendimiento_arg - rendimiento_usa) * 100.0
         return riesgo_pb, rendimiento_arg, rendimiento_usa, precio_arg
-    except Exception as e:
+    except Exception:
         return None, None, None, None
 
 @st.cache_data(ttl=300)
@@ -73,10 +72,7 @@ def obtener_riesgo_historico(periodo: str) -> Optional[pd.DataFrame]:
 if "live_data" not in st.session_state:
     st.session_state.live_data = pd.DataFrame(columns=["timestamp", "riesgo_pb"])
 
-# --- Actualización en vivo mediante autorefresh ---
-# Cada recarga de la página re-ejecuta el script y agrega la lectura actual.
-
-# Obtener lectura actual
+# --- Obtener lectura actual ---
 riesgo_pb, rend_arg, rend_usa, precio_arg = obtener_riesgo_actual()
 
 col1, col2, col3, col4 = st.columns(4)
@@ -89,7 +85,7 @@ if riesgo_pb is not None:
 else:
     st.error("No se pudo obtener el dato en vivo. Intentá nuevamente.")
 
-# Agregar punto a la serie en vivo
+# --- Agregar punto a la serie en vivo ---
 if riesgo_pb is not None:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.session_state.live_data.loc[len(st.session_state.live_data)] = [ts, riesgo_pb]
@@ -104,7 +100,7 @@ if not st.session_state.live_data.empty:
     csv_live = df_live.to_csv().encode("utf-8")
     st.download_button("⬇️ Descargar CSV (sesión)", data=csv_live, file_name="riesgo_pais_sesion.csv", mime="text/csv")
 
-# Alerta de umbral
+# --- Alerta de umbral ---
 if riesgo_pb is not None and riesgo_pb > umbral:
     st.warning(f"🚨 ALERTA: El riesgo país superó el umbral de {umbral:,.0f} pb. Valor actual: {riesgo_pb:,.0f} pb.")
 
@@ -125,8 +121,7 @@ else:
     csv_hist = df_hist.to_csv().encode("utf-8")
     st.download_button("⬇️ Descargar CSV (histórico)", data=csv_hist, file_name=f"riesgo_pais_historico_{periodo_hist}.csv", mime="text/csv")
 
-# --- Auto-refresco no bloqueante ---
-# Usamos un truco con JavaScript para refrescar sin while True
+# --- Auto-refresco (cada X segundos) ---
 st.markdown(
     f"""
     <script>
